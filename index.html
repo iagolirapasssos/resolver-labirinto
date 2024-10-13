@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Labirinto Programável</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- CodeMirror CSS for Syntax Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.css">
 </head>
 <body>
     <h1>Labirinto Programável</h1>
@@ -29,6 +31,23 @@
         <button id="abort" disabled>Abortar</button>
     </div>
     <div id="output"></div>
+
+    <!-- Include CodeMirror JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.5/mode/javascript/javascript.min.js"></script>
+
+    <!-- Include your script -->
     <script src="script.js"></script>
+
+    <script>
+        // Initialize CodeMirror for the code editor
+        var editor = CodeMirror.fromTextArea(document.getElementById('code'), {
+            mode: "javascript",
+            lineNumbers: true,
+            theme: "default",
+            lineWrapping: true
+        });
+    </script>
 </body>
 </html>
+

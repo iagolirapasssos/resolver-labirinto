@@ -14,7 +14,7 @@ const timerDisplay = document.getElementById('timer');
 let MAZE_SIZE = 15;
 let mazeLayout = [];
 let carPosition = { x: 1, y: 1 };
-let carAngle = 0;
+let carAngle = 0; // 0 degrees is facing up
 let endPosition = { x: MAZE_SIZE - 2, y: MAZE_SIZE - 2 };
 let startTime;
 let timerInterval;
@@ -22,7 +22,7 @@ let abortController;
 
 // Logging Function
 function log(message, type = 'info') {
-    const logMessage = `[${new Date().toISOString()}] [${type.toUpperCase()}] ${message}`;
+    const logMessage = `[${new Date().toLocaleTimeString()}] [${type.toUpperCase()}] ${message}`;
     console.log(logMessage);
     output.innerHTML += `<div class="${type}">${logMessage}</div>`;
     output.scrollTop = output.scrollHeight;
@@ -51,16 +51,17 @@ function generateMaze() {
     mazeLayout[1][1] = 0;
     carvePath(1, 1);
 
-    // Ensure end position is accessible
-    mazeLayout[MAZE_SIZE - 2][MAZE_SIZE - 2] = 0;
+    // Ensure end position is accessible and in a white cell
     endPosition = { x: MAZE_SIZE - 2, y: MAZE_SIZE - 2 };
-    mazeLayout[endPosition.y][endPosition.x] = 2; // Mark the flag
+    mazeLayout[endPosition.y][endPosition.x] = 0; // Open the end cell
 
     // Special handling for Level 1 (10x10) to ensure the flag is on a white cell
     if (MAZE_SIZE === 10) {
-        // Ensure the end position is connected to the start
         connectEndToStart();
     }
+
+    // Place the flag
+    mazeLayout[endPosition.y][endPosition.x] = 2; // Mark the flag
 
     log('Maze generated successfully');
 }
@@ -72,12 +73,21 @@ function connectEndToStart() {
     let y = endPosition.y;
 
     while (x > 1 || y > 1) {
-        if (x > 1) {
+        if (x > 1 && mazeLayout[y][x - 1] === 1) {
             x -= 1;
             mazeLayout[y][x] = 0;
-        } else if (y > 1) {
+        } else if (y > 1 && mazeLayout[y - 1][x] === 1) {
             y -= 1;
             mazeLayout[y][x] = 0;
+        } else {
+            // If blocked, try another direction
+            if (x > 1) {
+                x -= 1;
+                mazeLayout[y][x] = 0;
+            } else if (y > 1) {
+                y -= 1;
+                mazeLayout[y][x] = 0;
+            }
         }
     }
 
@@ -194,6 +204,7 @@ async function rotacionar(angle) {
     });
 }
 
+// Sensor Functions
 async function ultra_sensor(direction) {
     return new Promise((resolve, reject) => {
         setTimeout(() => {
@@ -250,6 +261,7 @@ async function ultra_esquerda() {
     return ultra_sensor('esquerda');
 }
 
+// Utility Functions
 async function ver_bandeira() {
     return new Promise((resolve, reject) => {
         setTimeout(() => {
@@ -305,11 +317,28 @@ async function espelharVertical() {
     });
 }
 
+// Compass Sensor Function: Returns the car's current position and angle
+async function bussola() {
+    const pos = await posicao();
+    return { x: pos.x, y: pos.y, angle: carAngle };
+}
+
 // Function to rotate the car in 90-degree increments until it reaches the desired angle
 async function rotacionarPara(angulo) {
-    while (carAngle !== angulo) {
-        await rotacionar(90); // Rotate the car by 90 degrees
+    let normalizedAngle = (angulo + 360) % 360;
+    let currentNormalizedAngle = (carAngle + 360) % 360;
+
+    let angleDifference = normalizedAngle - currentNormalizedAngle;
+    if (angleDifference === 0) return;
+
+    // Determine the minimal rotation direction
+    if (angleDifference > 180) {
+        angleDifference -= 360;
+    } else if (angleDifference < -180) {
+        angleDifference += 360;
     }
+
+    await rotacionar(angleDifference);
 }
 
 // Function to write a message to the output area
@@ -324,12 +353,6 @@ async function escrever(msg) {
             resolve();
         }, 100);
     });
-}
-
-// Compass Sensor Function: Returns the car's current position and angle
-async function bussola() {
-    const pos = await posicao();
-    return { x: pos.x, y: pos.y, angle: carAngle };
 }
 
 // Timer Functions
@@ -378,7 +401,7 @@ function initGame() {
 // Function to Execute User Code
 async function executeCode() {
     log('Starting code execution');
-    const code = codeArea.value;
+    const code = editor.getValue(); // Use CodeMirror's getValue()
     output.innerHTML = '';
     carPosition = { x: 1, y: 1 };
     carAngle = 0;
