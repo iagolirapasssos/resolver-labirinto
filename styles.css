@@ -1,0 +1,86 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background-color: #f0f0f0;
+}
+.controls {
+    margin-bottom: 10px;
+}
+#difficulty, #newMaze {
+    padding: 5px 10px;
+    font-size: 14px;
+}
+#timer {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+.game-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+#maze {
+    display: grid;
+    gap: 1px;
+    background-color: #333;
+    padding: 5px;
+    border-radius: 5px;
+}
+.cell {
+    background-color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+}
+.wall {
+    background-color: #333;
+}
+#car {
+    font-size: 16px;
+    transition: none; /* Ajuste se necessário */
+}
+
+#code {
+    width: 400px;
+    height: 400px;
+    font-family: monospace;
+    font-size: 14px;
+}
+.button-container {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+#run, #abort {
+    padding: 10px 20px;
+    font-size: 16px;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+#run {
+    background-color: #4CAF50;
+}
+#abort {
+    background-color: #f44336;
+}
+#run:disabled, #abort:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+#output {
+    width: 100%;
+    height: 200px;
+    border: 1px solid #ccc;
+    overflow-y: auto;
+    padding: 10px;
+    background-color: white;
+    font-family: monospace;
+    font-size: 14px;
+}

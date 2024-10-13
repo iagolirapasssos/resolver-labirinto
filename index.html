@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Labirinto Programável</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <h1>Labirinto Programável</h1>
+    <div class="controls">
+        <select id="difficulty">
+            <option value="10">Nível 1 (10x10)</option>
+            <option value="15" selected>Nível 2 (15x15)</option>
+            <option value="20">Nível 3 (20x20)</option>
+            <option value="25">Nível 4 (25x25)</option>
+            <option value="30">Nível 5 (30x30)</option>
+            <option value="35">Nível 6 (35x35)</option>
+        </select>
+        <button id="newMaze">Novo Labirinto</button>
+    </div>
+    <div id="timer">Tempo: 00:00:00.000</div>
+    <div class="game-container">
+        <div id="maze"></div>
+        <textarea id="code" placeholder="Escreva seu código aqui..."></textarea>
+    </div>
+    <div class="button-container">
+        <button id="run">Executar Código</button>
+        <button id="abort" disabled>Abortar</button>
+    </div>
+    <div id="output"></div>
+    <script src="script.js"></script>
+</body>
+</html>
