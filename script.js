@@ -1,3 +1,6 @@
+// script.js
+
+// DOM Elements
 const maze = document.getElementById('maze');
 const codeArea = document.getElementById('code');
 const runButton = document.getElementById('run');
@@ -7,6 +10,7 @@ const difficultySelect = document.getElementById('difficulty');
 const newMazeButton = document.getElementById('newMaze');
 const timerDisplay = document.getElementById('timer');
 
+// Game Variables
 let MAZE_SIZE = 15;
 let mazeLayout = [];
 let carPosition = { x: 1, y: 1 };
@@ -16,6 +20,7 @@ let startTime;
 let timerInterval;
 let abortController;
 
+// Logging Function
 function log(message, type = 'info') {
     const logMessage = `[${new Date().toISOString()}] [${type.toUpperCase()}] ${message}`;
     console.log(logMessage);
@@ -23,9 +28,12 @@ function log(message, type = 'info') {
     output.scrollTop = output.scrollHeight;
 }
 
+// Maze Generation Function
 function generateMaze() {
+    // Initialize maze with all walls
     mazeLayout = Array(MAZE_SIZE).fill().map(() => Array(MAZE_SIZE).fill(1));
 
+    // Recursive Backtracking Algorithm to carve paths
     function carvePath(x, y) {
         const directions = [[0, -1], [1, 0], [0, 1], [-1, 0]].sort(() => Math.random() - 0.5);
         
@@ -39,18 +47,45 @@ function generateMaze() {
         }
     }
 
+    // Set starting position
     mazeLayout[1][1] = 0;
     carvePath(1, 1);
 
-    // Garantir que o ponto final seja acessível
+    // Ensure end position is accessible
     mazeLayout[MAZE_SIZE - 2][MAZE_SIZE - 2] = 0;
-
     endPosition = { x: MAZE_SIZE - 2, y: MAZE_SIZE - 2 };
-    mazeLayout[endPosition.y][endPosition.x] = 2;
-    
-    log('Labirinto gerado com sucesso');
+    mazeLayout[endPosition.y][endPosition.x] = 2; // Mark the flag
+
+    // Special handling for Level 1 (10x10) to ensure the flag is on a white cell
+    if (MAZE_SIZE === 10) {
+        // Ensure the end position is connected to the start
+        connectEndToStart();
+    }
+
+    log('Maze generated successfully');
 }
 
+// Function to connect the end position to the start position for Level 1
+function connectEndToStart() {
+    // Simple approach: carve a direct path from end to start
+    let x = endPosition.x;
+    let y = endPosition.y;
+
+    while (x > 1 || y > 1) {
+        if (x > 1) {
+            x -= 1;
+            mazeLayout[y][x] = 0;
+        } else if (y > 1) {
+            y -= 1;
+            mazeLayout[y][x] = 0;
+        }
+    }
+
+    // Re-mark the flag
+    mazeLayout[endPosition.y][endPosition.x] = 2;
+}
+
+// Function to Create Maze on Interface
 function createMaze() {
     maze.innerHTML = '';
     maze.style.gridTemplateColumns = `repeat(${MAZE_SIZE}, ${400 / MAZE_SIZE}px)`;
@@ -70,50 +105,73 @@ function createMaze() {
             maze.appendChild(cell);
         }
     }
+
+    // Ensure the start position is open
+    if (mazeLayout[carPosition.y][carPosition.x] === 1) {
+        mazeLayout[carPosition.y][carPosition.x] = 0;
+    }
+
+    // Ensure the end position is open and marked
+    if (mazeLayout[endPosition.y][endPosition.x] === 1) {
+        mazeLayout[endPosition.y][endPosition.x] = 0;
+        mazeLayout[endPosition.y][endPosition.x] = 2; // Re-mark the flag
+    }
+
+    // Create the car element
     const carElement = document.createElement('div');
     carElement.id = 'car';
     carElement.textContent = '🚗';
     maze.children[carPosition.y * MAZE_SIZE + carPosition.x].appendChild(carElement);
     updateCarRotation();
-    log('Labirinto criado na interface');
+    log('Maze created on interface');
 }
 
+// Function to Update Car's Rotation
 function updateCarRotation() {
     const car = document.getElementById('car');
     car.style.transform = `rotate(${carAngle}deg)`;
 }
 
+// Car Control Functions
 async function mover(distance) {
     return new Promise((resolve, reject) => {
         setTimeout(() => {
             if (abortController.signal.aborted) {
-                reject(new Error('Execução abortada'));
+                reject(new Error('Execution aborted'));
                 return;
             }
 
             const radians = carAngle * Math.PI / 180;
             const dx = Math.sin(radians) * distance;
-			const dy = -Math.cos(radians) * distance;
+            const dy = -Math.cos(radians) * distance;
 
-			const newX = Math.round(carPosition.x + dx);
-			const newY = Math.round(carPosition.y + dy);
+            const newX = Math.round(carPosition.x + dx);
+            const newY = Math.round(carPosition.y + dy);
 
-
+            // Check if the new position is within bounds and not a wall
             if (newX >= 0 && newX < MAZE_SIZE && newY >= 0 && newY < MAZE_SIZE && mazeLayout[newY][newX] !== 1) {
+                // Remove the car from the previous position
+                const car = document.getElementById('car');
+                maze.children[carPosition.y * MAZE_SIZE + carPosition.x].removeChild(car);
+
+                // Update car position
                 carPosition.x = newX;
                 carPosition.y = newY;
-                const car = document.getElementById('car');
+
+                // Add the car to the new position
                 maze.children[newY * MAZE_SIZE + newX].appendChild(car);
                 updateCarRotation();
-                log(`Carro movido para (${newX}, ${newY})`);
+                log(`Car moved to (${newX}, ${newY})`);
+
+                // Check if reached the flag
                 if (carPosition.x === endPosition.x && carPosition.y === endPosition.y) {
-		    log('Parabéns! Você chegou à bandeira!', 'success');
-		    stopTimer();
-		}
+                    log('Congratulations! You reached the flag!', 'success');
+                    stopTimer();
+                }
 
                 resolve(true);
             } else {
-                log(`Movimento inválido - Parede ou fora dos limites`, 'warn');
+                log(`Invalid move - Wall or out of bounds`, 'warn');
                 resolve(false);
             }
         }, 500);
@@ -124,13 +182,13 @@ async function rotacionar(angle) {
     return new Promise((resolve, reject) => {
         setTimeout(() => {
             if (abortController.signal.aborted) {
-                reject(new Error('Execução abortada'));
+                reject(new Error('Execution aborted'));
                 return;
             }
 
             carAngle = (carAngle + angle) % 360;
             updateCarRotation();
-            log(`Carro rotacionado para ${carAngle} graus`);
+            log(`Car rotated to ${carAngle} degrees`);
             resolve();
         }, 100);
     });
@@ -140,7 +198,7 @@ async function ultra_sensor(direction) {
     return new Promise((resolve, reject) => {
         setTimeout(() => {
             if (abortController.signal.aborted) {
-                reject(new Error('Execução abortada'));
+                reject(new Error('Execution aborted'));
                 return;
             }
 
@@ -196,7 +254,7 @@ async function ver_bandeira() {
     return new Promise((resolve, reject) => {
         setTimeout(() => {
             if (abortController.signal.aborted) {
-                reject(new Error('Execução abortada'));
+                reject(new Error('Execution aborted'));
                 return;
             }
             resolve(carPosition.x === endPosition.x && carPosition.y === endPosition.y);
@@ -208,10 +266,10 @@ async function posicao() {
     return new Promise((resolve, reject) => {
         setTimeout(() => {
             if (abortController.signal.aborted) {
-                reject(new Error('Execução abortada'));
+                reject(new Error('Execution aborted'));
                 return;
             }
-            log(`Posição atual do carro: (${carPosition.x}, ${carPosition.y})`);
+            log(`Current car position: (${carPosition.x}, ${carPosition.y})`);
             resolve({ x: carPosition.x, y: carPosition.y });
         }, 100);
     });
@@ -221,12 +279,12 @@ async function espelharHorizontal() {
     return new Promise((resolve, reject) => {
         setTimeout(() => {
             if (abortController.signal.aborted) {
-                reject(new Error('Execução abortada'));
+                reject(new Error('Execution aborted'));
                 return;
             }
             const car = document.getElementById('car');
-            car.style.transform += ' scaleX(-1)'; // Espelhar horizontalmente
-            log('Carro espelhado horizontalmente');
+            car.style.transform += ' scaleX(-1)'; // Mirror horizontally
+            log('Car mirrored horizontally');
             resolve();
         }, 100);
     });
@@ -236,30 +294,30 @@ async function espelharVertical() {
     return new Promise((resolve, reject) => {
         setTimeout(() => {
             if (abortController.signal.aborted) {
-                reject(new Error('Execução abortada'));
+                reject(new Error('Execution aborted'));
                 return;
             }
             const car = document.getElementById('car');
-            car.style.transform += ' scaleY(-1)'; // Espelhar verticalmente
-            log('Carro espelhado verticalmente');
+            car.style.transform += ' scaleY(-1)'; // Mirror vertically
+            log('Car mirrored vertically');
             resolve();
         }, 100);
     });
 }
 
-// Função para rotacionar o carro em incrementos de 90 graus até o ângulo desejado
+// Function to rotate the car in 90-degree increments until it reaches the desired angle
 async function rotacionarPara(angulo) {
     while (carAngle !== angulo) {
-        await rotacionar(90); // Girar o carro em 90 graus
+        await rotacionar(90); // Rotate the car by 90 degrees
     }
 }
 
-
+// Function to write a message to the output area
 async function escrever(msg) {
     return new Promise((resolve, reject) => {
         setTimeout(() => {
             if (abortController.signal.aborted) {
-                reject(new Error('Execução abortada'));
+                reject(new Error('Execution aborted'));
                 return;
             }
             log(msg, 'user');
@@ -268,6 +326,13 @@ async function escrever(msg) {
     });
 }
 
+// Compass Sensor Function: Returns the car's current position and angle
+async function bussola() {
+    const pos = await posicao();
+    return { x: pos.x, y: pos.y, angle: carAngle };
+}
+
+// Timer Functions
 function startTimer() {
     startTime = new Date();
     timerInterval = setInterval(updateTimer, 10);
@@ -280,15 +345,39 @@ function updateTimer() {
     const minutes = String(elapsedTime.getUTCMinutes()).padStart(2, '0');
     const seconds = String(elapsedTime.getUTCSeconds()).padStart(2, '0');
     const milliseconds = String(elapsedTime.getUTCMilliseconds()).padStart(3, '0');
-    timerDisplay.textContent = `Tempo: ${hours}:${minutes}:${seconds}.${milliseconds}`;
+    timerDisplay.textContent = `Time: ${hours}:${minutes}:${seconds}.${milliseconds}`;
 }
 
 function stopTimer() {
     clearInterval(timerInterval);
 }
 
+// Function to Adjust Car Size Based on Cell Size
+function adjustCarSize() {
+    const cell = maze.querySelector('.cell');
+    if (cell) {
+        const cellSize = cell.offsetWidth;
+        const car = document.getElementById('car');
+        if (car) {
+            car.style.fontSize = `${cellSize * 0.7}px`;
+        }
+    }
+}
+
+// Function to Initialize the Game
+function initGame() {
+    MAZE_SIZE = parseInt(difficultySelect.value);
+    generateMaze();
+    carPosition = { x: 1, y: 1 };
+    carAngle = 0;
+    createMaze();
+    adjustCarSize();
+    log('Game initialized');
+}
+
+// Function to Execute User Code
 async function executeCode() {
-    log('Iniciando execução do código');
+    log('Starting code execution');
     const code = codeArea.value;
     output.innerHTML = '';
     carPosition = { x: 1, y: 1 };
@@ -307,12 +396,12 @@ async function executeCode() {
         })()
         `;
         await eval(wrappedCode);
-        log('Execução do código concluída');
+        log('Code execution completed');
     } catch (error) {
-        if (error.message === 'Execução abortada') {
-            log('Execução do código abortada pelo usuário', 'warn');
+        if (error.message === 'Execution aborted') {
+            log('Code execution aborted by user', 'warn');
         } else {
-            log(`Erro durante a execução: ${error.message}`, 'error');
+            log(`Error during execution: ${error.message}`, 'error');
         }
     } finally {
         stopTimer();
@@ -321,35 +410,21 @@ async function executeCode() {
     }
 }
 
-runButton.addEventListener('click', executeCode);
-
-abortButton.addEventListener('click', () => {
+// Function to Abort Code Execution
+function abortExecution() {
     if (abortController) {
         abortController.abort();
-    }
-});
-
-function adjustCarSize() {
-    const cell = maze.querySelector('.cell');
-    if (cell) {
-        const cellSize = cell.offsetWidth;
-        const car = document.getElementById('car');
-        if (car) {
-            car.style.fontSize = `${cellSize * 0.7}px`;
-        }
+        log('Aborting execution...', 'warn');
     }
 }
 
-function initGame() {
-    MAZE_SIZE = parseInt(difficultySelect.value);
-    generateMaze();
-    createMaze();
-    adjustCarSize();
-    log('Jogo inicializado');
-}
+// Event Listeners for Buttons
+runButton.addEventListener('click', executeCode);
+abortButton.addEventListener('click', abortExecution);
 
+// Event Listeners for Game Initialization and Car Size Adjustment
+window.addEventListener('resize', adjustCarSize);
+window.addEventListener('load', initGame);
 difficultySelect.addEventListener('change', initGame);
 newMazeButton.addEventListener('click', initGame);
 
-window.addEventListener('load', initGame);
-window.addEventListener('resize', adjustCarSize);
